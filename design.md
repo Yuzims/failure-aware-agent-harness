@@ -3420,9 +3420,42 @@ collect evidence
 
 ## Phase 4 — Independent Verifier
 
-优先实现 deterministic checks。
+**DONE。** 第一版是确定性、证据驱动的 Independent Completion Verifier（`src/verification/independent-completion-verifier.ts`）。
 
-然后增加 semantic checks。
+```text
+Investigation Agent
+        |
+        | observations / evidence / claims
+        v
+    Harness State
+        |
+        v
+Independent Completion Verifier
+        |
+        +--> deterministic checks
+        |
+        +--> evidence requirements
+        |
+        +--> claim/evidence consistency
+        |
+        v
+VerificationResult
+```
+
+原则：
+
+> Agent conclusion ≠ verification result.
+> VerificationResult is produced independently by the Harness.
+
+Agent 可以调查、收集 Evidence、记录 Claim，但不能设置 `verified_complete`。Verifier 不读取 Agent 终答作为真相，也不把 Issue/Comment body 当 Harness 指令。
+
+状态：
+
+* `verified_complete` — 全部 required checks 独立通过
+* `not_verified` — 已有足够信息否定完成（例如 PR 存在但 `merged === false`）
+* `insufficient_evidence` — 关键证据缺失，无法证明完成
+
+语义检查 / LLM judge 不属于本 Phase。
 
 ---
 

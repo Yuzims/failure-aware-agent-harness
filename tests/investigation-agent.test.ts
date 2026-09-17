@@ -97,7 +97,8 @@ test("Investigation：resolved fixture 多步调查并形成 resolution candidat
   assert.equal(result.actor, "test_driver");
   assert.match(TEST_DRIVER_NOTICE, /not a real Investigation Agent/i);
   assert.equal(result.status, "investigated");
-  assert.equal(result.run.status, "not_verified");
+  assert.equal(result.run.status, "verified_complete");
+  assert.equal(result.verification?.status, "verified_complete");
   assert.notEqual(result.status, "verified_complete");
   assert.ok(tools.length >= 2 && tools.length <= 8);
   assert.deepEqual(tools.slice(0, 2), ["github_get_issue", "github_get_issue_timeline"]);
@@ -148,9 +149,13 @@ test("Investigation：resolved fixture 多步调查并形成 resolution candidat
     "evidence_added",
     "claim_created",
     "investigation_completed",
+    "verification_started",
+    "verification_check",
+    "verification_completed",
   ]) {
     assert.equal(types.has(required as never), true, `missing trace ${required}`);
   }
+  assert.equal(result.verification?.checks.some((item) => item.id === "pr-merged" && item.status === "pass"), true);
   const step = trace.getEvents().find((event) => event.type === "agent_step");
   assert.ok(typeof step?.data.reason === "string");
   assert.ok(String(step?.data.reason).length > 0);
@@ -166,6 +171,11 @@ test("Investigation：closed-unmerged 不会因为 issue closed 就宣称 resolv
   assert.equal(result.status, "partial");
   assert.notEqual(result.report.polarity, "resolved");
   assert.equal(result.run.status, "not_verified");
+  assert.equal(result.verification?.status, "not_verified");
+  assert.equal(
+    result.verification?.checks.some((item) => item.id === "pr-merged" && item.status === "fail"),
+    true,
+  );
   assert.equal(
     result.claims.some((claim) => claim.polarity === "resolved" && /resolved by/i.test(claim.text)),
     false,
@@ -184,7 +194,12 @@ test("Investigation：insufficient-evidence 结束并保留 evidence gap，不�
   assert.equal(tools.includes("github_get_pull_request"), false);
   assert.equal(result.status, "insufficient_evidence");
   assert.equal(result.report.polarity, "unknown");
-  assert.equal(result.run.status, "not_verified");
+  assert.equal(result.run.status, "insufficient_evidence");
+  assert.equal(result.verification?.status, "insufficient_evidence");
+  assert.equal(
+    result.verification?.checks.some((item) => item.id === "resolution-candidate" && item.status === "unknown"),
+    true,
+  );
   assert.ok(result.unresolvedQuestions.length > 0);
 
   const issue = result.evidence.find((item) => item.kind === "issue");
@@ -286,7 +301,8 @@ test("Investigation：注入的 LLM 走 function calling，不经过 keyword cla
   assert.ok(calls >= 2);
   assert.ok(provider.operations.includes("getIssue"));
   assert.ok(result.evidence.some((item) => item.kind === "issue"));
-  assert.equal(result.run.status, "not_verified");
+  assert.equal(result.run.status, "insufficient_evidence");
+  assert.equal(result.verification?.status, "insufficient_evidence");
   assert.notEqual(result.status, "verified_complete");
 });
 
@@ -319,7 +335,8 @@ test("Investigation：自定义 Model 也走 Tool → Provider，不走 Workspac
   assert.equal(result.actor, "llm");
   assert.deepEqual(provider.operations, ["getIssue"]);
   assert.equal(result.evidence[0]?.kind, "issue");
-  assert.equal(result.run.status, "not_verified");
+  assert.equal(result.run.status, "insufficient_evidence");
+  assert.equal(result.verification?.status, "insufficient_evidence");
 });
 
 test("Investigation：模块不依赖 React / Hono / keyword classifier / WorkspaceAgent", () => {

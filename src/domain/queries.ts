@@ -61,9 +61,18 @@ export function criticalChecksPassed(checks: VerificationCheck[]): boolean {
     .every((check) => check.status === "pass");
 }
 
+function requiredChecks(checks: VerificationCheck[]): VerificationCheck[] {
+  return checks.filter(
+    (check) => check.severity === "critical" || check.severity === "required",
+  );
+}
+
 /**
  * Agent 终答不参与判定。verified_complete 只在：
  * 关键/必需检查全过、必需证据齐、关键 Claim 都有 supporting evidence。
+ *
+ * 缺关键证据 → insufficient_evidence
+ * 已有足够信息否定完成条件 / 存在矛盾 → not_verified
  */
 export function buildVerificationResult(input: {
   checks: VerificationCheck[];
@@ -79,18 +88,34 @@ export function buildVerificationResult(input: {
     input.claimEvidence,
     input.evidence,
   );
+  const required = requiredChecks(input.checks);
+  const anyFail = required.some((check) => check.status === "fail");
+  const anyUnknown = required.some((check) => check.status === "unknown");
   const checksOk = criticalChecksPassed(input.checks);
   const requiredMissing = missing.filter((item) => item.severity !== "optional");
   const complete =
     checksOk && requiredMissing.length === 0 && unsupported.length === 0 && input.checks.length > 0;
 
+  let status: VerificationResult["status"];
+  if (complete) {
+    status = "verified_complete";
+  } else if (input.checks.length === 0) {
+    status = "not_verified";
+  } else if (anyFail) {
+    status = "not_verified";
+  } else if (anyUnknown || requiredMissing.length > 0 || unsupported.length > 0) {
+    status = "insufficient_evidence";
+  } else {
+    status = "not_verified";
+  }
+
   return {
-    status: complete ? "verified_complete" : "not_verified",
+    status,
     checks: input.checks,
     evidenceCoverage: evidenceCoverage(input.requirements, input.evidence),
     unsupportedClaimIds: unsupported.map((claim) => claim.id),
     missingRequirementIds: missing.map((item) => item.id),
-    prematureCompletion: Boolean(input.agentClaimedComplete) && !complete && checksOk,
+    prematureCompletion: Boolean(input.agentClaimedComplete) && !complete && !anyFail,
   };
 }
 

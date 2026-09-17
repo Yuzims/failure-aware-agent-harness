@@ -21,12 +21,14 @@ License: MIT。Node 20+（`.nvmrc` 22.14.0）。
 
 **Phase 2：** GitHub 数据访问统一走 `GitHubDataProvider`（Live REST 或本地 Snapshot replay）。调查 Tool 不再直接 `fetch` GitHub。三个 recorded fixture 在 `fixtures/github/`。
 
-**Phase 3A：** 独立 Investigation Agent（`src/investigation/`）通过现有 AgentLoop + GitHub tools + Provider 做多步调查，产出 Evidence / Claim。Agent **不能**设置 `VERIFIED_COMPLETE`（那是 Phase 4 Independent Verifier）。无 `OPENAI_API_KEY` 时返回 `unconfigured`，不会把 keyword classifier 伪装成自主调查。测试里的 `SnapshotInvestigationDriver`（`useTestDriver: true`）只是 **test fixture**，不是真正的 Investigation Agent。
+**Phase 3A：** 独立 Investigation Agent（`src/investigation/`）通过现有 AgentLoop + GitHub tools + Provider 做多步调查，产出 Evidence / Claim。Agent **不能**设置 `VERIFIED_COMPLETE`。无 `OPENAI_API_KEY` 时返回 `unconfigured`，不会把 keyword classifier 伪装成自主调查。测试里的 `SnapshotInvestigationDriver`（`useTestDriver: true`）只是 **test fixture**，不是真正的 Investigation Agent。
+
+**Phase 4 — Independent Completion Verifier — DONE：** `IndependentCompletionVerifier` 在 Agent 之后独立判定。Agent conclusion ≠ verification result。`VerificationResult` 由 Harness 产生，不看 Agent 终答，不接受 Agent 自报完成。确定性检查：issue identity / issue state / resolution candidate / PR merged / code-commit evidence / claims / EvidenceRequirement。三个 fixture：`resolved.json` → `verified_complete`，`closed-unmerged.json` → `not_verified`，`insufficient-evidence.json` → `insufficient_evidence`。
 
 ```text
 InvestigationTask → InvestigationRun → Attempt
 Evidence / Claim / ClaimEvidence / EvidenceRequirement
-VerificationResult（Agent 结论只是待验证对象）
+IndependentCompletionVerifier → VerificationResult
 FailureEvent → RecoveryPlan（按失败类型，不是统一 Retry）
 ```
 

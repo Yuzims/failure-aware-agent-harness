@@ -135,7 +135,7 @@ test("Domain：没有 supporting evidence 的关键 Claim 不能过验证", () =
     agentClaimedComplete: true,
   });
 
-  assert.equal(result.status, "not_verified");
+  assert.equal(result.status, "insufficient_evidence");
   assert.deepEqual(result.unsupportedClaimIds, [claim.id]);
   assert.equal(result.prematureCompletion, true);
 });
@@ -180,7 +180,7 @@ test("Domain：Agent 结论不是真相，检查与证据齐了才 verified_comp
     evidence: [issue],
     agentClaimedComplete: true,
   });
-  assert.equal(incomplete.status, "not_verified");
+  assert.equal(incomplete.status, "insufficient_evidence");
   assert.ok(incomplete.missingRequirementIds.includes("req-pr"));
 
   const complete = buildVerificationResult({

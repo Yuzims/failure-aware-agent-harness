@@ -24,3 +24,5 @@ export {
   TEST_DRIVER_NOTICE,
 } from "./test-driver.js";
 export { createInvestigationToolList, ingestObservation } from "./investigation-tools.js";
+export { IndependentCompletionVerifier, verifyInvestigationCompletion } from "../verification/independent-completion-verifier.js";
+export type { IndependentVerifyInput } from "../verification/independent-completion-verifier.js";

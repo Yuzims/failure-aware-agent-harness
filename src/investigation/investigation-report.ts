@@ -1,11 +1,16 @@
-import type { ClaimPolarity, InvestigationReport, InvestigationTask } from "../domain/index.js";
+import type {
+  ClaimPolarity,
+  InvestigationReport,
+  InvestigationTask,
+  VerificationResult,
+} from "../domain/index.js";
 import type { AgentResult } from "../core/types.js";
 import type { InvestigationRun } from "../domain/index.js";
 import type { InvestigationState, ToolHistoryEntry } from "./state.js";
 
 export type InvestigationActor = "llm" | "test_driver" | "unconfigured";
 
-/** Investigation outcome only. Never VERIFIED_COMPLETE — that is Phase 4. */
+/** Investigation outcome only. Never the Harness verification verdict. */
 export type InvestigationAgentStatus =
   | "investigated"
   | "partial"
@@ -33,6 +38,8 @@ export interface InvestigationAgentReport {
   investigationSteps: InvestigationStep[];
   actor: InvestigationActor;
   agentResult?: AgentResult;
+  /** Produced by IndependentCompletionVerifier, never by the Agent. */
+  verification?: VerificationResult;
 }
 
 export function stepsFromHistory(history: ToolHistoryEntry[]): InvestigationStep[] {
@@ -107,7 +114,7 @@ export function buildInvestigationReport(
     evidenceChain: state.run.evidence.map((item) => item.id),
     claimIds: state.run.claims.map((item) => item.id),
     uncertainty:
-      "Investigation claims are unverified hypotheses. An independent verifier (Phase 4) is required before any complete/true resolution judgment. The agent cannot set VERIFIED_COMPLETE.",
+      "Investigation claims are hypotheses. IndependentCompletionVerifier decides VerificationResult. Agent conclusion is not verification.",
     openQuestions: questions,
   };
 }
@@ -117,6 +124,7 @@ export function toAgentReport(input: {
   actor: InvestigationActor;
   agentResult?: AgentResult;
   status?: InvestigationAgentStatus;
+  verification?: VerificationResult;
 }): InvestigationAgentReport {
   const status = input.status ?? deriveInvestigationStatus(input.state);
   const report = buildInvestigationReport(input.state, status);
@@ -132,5 +140,6 @@ export function toAgentReport(input: {
     investigationSteps: stepsFromHistory(input.state.toolHistory),
     actor: input.actor,
     agentResult: input.agentResult,
+    verification: input.verification,
   };
 }

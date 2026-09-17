@@ -46,7 +46,7 @@ export type EvidenceTrust = "external_untrusted" | "harness_derived";
 
 export type CheckStatus = "pass" | "fail" | "warn" | "unknown";
 
-export type VerificationStatus = "verified_complete" | "not_verified";
+export type VerificationStatus = "verified_complete" | "not_verified" | "insufficient_evidence";
 
 export type CheckType =
   | "identity"
@@ -83,6 +83,7 @@ export type InvestigationRunStatus =
   | "in_progress"
   | "verified_complete"
   | "not_verified"
+  | "insufficient_evidence"
   | "stopped";
 
 export interface EvidenceRequirement {

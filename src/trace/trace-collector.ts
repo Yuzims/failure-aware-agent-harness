@@ -14,7 +14,10 @@ export type TraceEventType =
   | "agent_step"
   | "evidence_added"
   | "claim_created"
-  | "investigation_completed";
+  | "investigation_completed"
+  | "verification_started"
+  | "verification_check"
+  | "verification_completed";
 
 export interface TraceEvent {
   id: string;

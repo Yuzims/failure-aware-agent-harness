@@ -44,7 +44,7 @@ test("Trust：Issue/Comment 注入文本不能改变 recovery 或 verification",
     agentClaimedComplete: true,
   });
 
-  assert.equal(verification.status, "not_verified");
+  assert.equal(verification.status, "insufficient_evidence");
   assert.equal(planRecovery("insufficient_evidence").action, "gather_missing_evidence");
   assert.notEqual(planRecovery("insufficient_evidence").action, "stop");
 });

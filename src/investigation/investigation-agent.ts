@@ -9,6 +9,7 @@ import type { Task, ToolResult } from "../core/types.js";
 import type { GitHubDataProvider } from "../github/provider.js";
 import { ToolRegistry } from "../tools/tool-registry.js";
 import { TraceCollector } from "../trace/trace-collector.js";
+import { IndependentCompletionVerifier } from "../verification/independent-completion-verifier.js";
 import { createInvestigationToolList } from "./investigation-tools.js";
 import type { InvestigationSession } from "./investigation-tools.js";
 import {
@@ -144,7 +145,8 @@ function unconfiguredReport(state: InvestigationState): InvestigationAgentReport
 /**
  * Run a bounded GitHub investigation.
  * Reuses AgentLoop + ToolRegistry + TraceCollector. Does not rewrite the loop.
- * Never sets InvestigationRun.status to verified_complete.
+ * Never lets the Agent set InvestigationRun.status to verified_complete.
+ * IndependentCompletionVerifier alone produces VerificationResult.
  */
 export async function investigate(options: InvestigateOptions): Promise<InvestigationAgentReport> {
   const task = asTask(options.task);
@@ -204,14 +206,23 @@ export async function investigate(options: InvestigateOptions): Promise<Investig
 
   const agentResult = await loop.run(coreTask, run.id, { attempt: 1 });
   const endedAt = new Date().toISOString();
-  // Agent hypotheses only. Verification is Phase 4.
-  run.status = "not_verified";
+  const verification = new IndependentCompletionVerifier().verify(
+    {
+      task,
+      run,
+      agentFinalAnswer:
+        typeof agentResult.output === "string" ? agentResult.output : undefined,
+    },
+    trace,
+  );
+  run.status = verification.status;
   run.endedAt = endedAt;
 
   const report = toAgentReport({
     state,
     actor: resolved.actor,
     agentResult,
+    verification,
   });
 
   const attempt = appendAttempt(run, {
@@ -221,6 +232,7 @@ export async function investigate(options: InvestigateOptions): Promise<Investig
     report: report.report,
     evidenceIds: report.evidence.map((item) => item.id),
     claimIds: report.claims.map((item) => item.id),
+    verification,
   });
   report.run.attempts = attempt.attempts;
 
@@ -233,7 +245,8 @@ export async function investigate(options: InvestigateOptions): Promise<Investig
     claimEvidence: report.claimEvidence,
     unresolvedQuestions: report.unresolvedQuestions,
     polarity: report.report.polarity,
-    verifiedComplete: false,
+    verificationStatus: verification.status,
+    agentSetVerifiedComplete: false,
     notice: resolved.notice,
   });
 

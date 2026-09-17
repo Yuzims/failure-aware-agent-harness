@@ -32,6 +32,11 @@ export * from "./eval/benchmark.js";
 export * from "./trace/trace-collector.js";
 export * from "./verification/types.js";
 export * from "./verification/completion-verifier.js";
+export {
+  IndependentCompletionVerifier,
+  verifyInvestigationCompletion,
+} from "./verification/independent-completion-verifier.js";
+export type { IndependentVerifyInput } from "./verification/independent-completion-verifier.js";
 export * from "./failure/failure-types.js";
 export * from "./failure/failure-analyzer.js";
 export * from "./recovery/recovery-planner.js";
