@@ -1,0 +1,34 @@
+
+======== Failure Injection Benchmark ========
+
+对比的是同一批注入失败任务：提前完成 / 工具失败 / 检索跑偏 / 循环打转
+成功与否一律看 Verifier，不看 Agent 自己怎么说。
+成本用模型调用次数近似 Token：Mock Model 每次 decide() 记一次。
+
+模式               成功率      误完成率     恢复率      平均尝试     平均模型调用       平均耗时ms
+--------------------------------------------------------------------------------
+Baseline 信 Agent 0%       75%      0%       1.00     2.50         0.5
+盲重试              25%      50%      25%      2.75     7.00         0.7
+对症恢复             75%      0%       75%      1.75     4.00         0.3
+
+分任务明细：
+
+[Baseline 信 Agent]
+  premature    verifier=FAIL  attempts=1  modelCalls=2  falseCompletion=true  recovered=false  first=premature_completion
+  tool         verifier=FAIL  attempts=1  modelCalls=2  falseCompletion=true  recovered=false  first=tool_failure
+  retrieval    verifier=FAIL  attempts=1  modelCalls=2  falseCompletion=true  recovered=false  first=retrieval_failure
+  loop         verifier=FAIL  attempts=1  modelCalls=4  falseCompletion=false  recovered=false  first=loop_failure
+
+[盲重试]
+  premature    verifier=FAIL  attempts=3  modelCalls=6  falseCompletion=true  recovered=false  first=premature_completion
+  tool         verifier=PASS  attempts=2  modelCalls=4  falseCompletion=false  recovered=true  first=tool_failure
+  retrieval    verifier=FAIL  attempts=3  modelCalls=6  falseCompletion=true  recovered=false  first=retrieval_failure
+  loop         verifier=FAIL  attempts=3  modelCalls=12  falseCompletion=false  recovered=false  first=loop_failure
+
+[对症恢复]
+  premature    verifier=PASS  attempts=2  modelCalls=4  falseCompletion=false  recovered=true  first=premature_completion
+  tool         verifier=PASS  attempts=2  modelCalls=4  falseCompletion=false  recovered=true  first=tool_failure
+  retrieval    verifier=PASS  attempts=2  modelCalls=4  falseCompletion=false  recovered=true  first=retrieval_failure
+  loop         verifier=FAIL  attempts=1  modelCalls=4  falseCompletion=false  recovered=false  first=loop_failure
+
+结论：对症恢复比“信 Agent”和“瞎重试”更能把该过的任务救回来，又不会在循环失败上死磕，模型调用成本更低。

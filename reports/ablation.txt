@@ -1,0 +1,15 @@
+
+======== Retrieval Ablation ========
+
+查询：Transformer attention BERT
+标注：d1 Attention / d2 架构综述 / d3 BERT
+
+策略           P@3      相关条数       Top-3
+------------------------------------------------------------------------
+embedding    0%       0          d5, d7, d4
+bm25         100%     3          d3*, d1*, d2*
+hybrid       100%     3          d1*, d3*, d2*
+
+embedding：查询 TF-IDF 混入语料质心，模拟 hubness，Top-3 是热门噪声。
+BM25：词面匹配，gold 论文排在 transformer 同形词噪声前面。
+hybrid：BM25 先召回，再用纯查询 TF-IDF 重排。

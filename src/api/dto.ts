@@ -1,0 +1,137 @@
+export type BenchmarkMode = "baseline" | "generic_retry" | "failure_aware";
+
+export interface ScenarioInfo {
+  id: string;
+  title: string;
+  expectedFailure: string;
+  shouldFinallyPass: boolean;
+  description: string;
+}
+
+export interface CheckDTO {
+  name: string;
+  passed: boolean;
+  reason?: string;
+  expected?: unknown;
+  actual?: unknown;
+}
+
+export interface AttemptDTO {
+  attempt: number;
+  agentOutput: string;
+  verifier: "pass" | "fail";
+  prematureCompletion: boolean;
+  checks: CheckDTO[];
+  failureType?: string;
+  failureRootCause?: string;
+  recoveryAction?: string;
+  recoveryReason?: string;
+}
+
+export interface EventDTO {
+  step: number;
+  type: string;
+  summary: string;
+}
+
+export interface RunDTO {
+  runId: string;
+  scenarioId: string;
+  title: string;
+  mode: BenchmarkMode;
+  finalPass: boolean;
+  recoveryCount: number;
+  modelCalls: number;
+  toolCalls: number;
+  latencyMs: number;
+  attempts: AttemptDTO[];
+  events: EventDTO[];
+}
+
+export interface CaseScoreDTO {
+  id: string;
+  title: string;
+  mode: BenchmarkMode;
+  verifierPass: boolean;
+  falseCompletion: boolean;
+  recovered: boolean;
+  attempts: number;
+  modelCalls: number;
+  toolCalls: number;
+  latencyMs: number;
+  firstFailure?: string;
+}
+
+export interface ModeScoreDTO {
+  mode: BenchmarkMode;
+  cases: CaseScoreDTO[];
+  successRate: number;
+  falseCompletionRate: number;
+  recoveryRate: number;
+  avgAttempts: number;
+  avgModelCalls: number;
+  avgToolCalls: number;
+  avgLatencyMs: number;
+}
+
+export interface RetrievalHitDTO {
+  id: string;
+  title: string;
+  score?: number;
+  relevant: boolean;
+}
+
+export interface AblationRowDTO {
+  strategy: string;
+  query: string;
+  precisionAt3: number;
+  relevantCount: number;
+  hits: RetrievalHitDTO[];
+}
+
+export interface AgentStatusDTO {
+  kind: "mock" | "openai";
+  model: string;
+  ready: boolean;
+  hint: string;
+}
+
+export interface AgentExampleDTO {
+  label: string;
+  description: string;
+}
+
+export interface AgentTaskDTO {
+  id: string;
+  description: string;
+  expected?: {
+    file?: string;
+    itemCount?: number;
+    minRelevant?: number;
+    query?: string;
+  };
+}
+
+export interface AgentStreamEvent {
+  type: "log" | "tool_call" | "tool_result" | "delta" | "done" | "error";
+  message?: string;
+  name?: string;
+  arguments?: Record<string, unknown>;
+  success?: boolean;
+  preview?: string;
+  text?: string;
+  session?: AgentSessionDTO;
+}
+
+export interface AgentSessionDTO {
+  task: AgentTaskDTO;
+  modelKind: "workspace" | "openai";
+  modelId: string;
+  failureAware: boolean;
+  run: RunDTO;
+  files: Array<{ path: string; content: string }>;
+  retrieval?: {
+    strategy: string;
+    hits: RetrievalHitDTO[];
+  };
+}

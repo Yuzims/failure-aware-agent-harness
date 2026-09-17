@@ -1,0 +1,927 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Failure-Aware 主线 Trace</title>
+  <style>
+    body { font-family: sans-serif; margin: 24px; background: #0f1419; color: #e8edf2; }
+    h1 { font-size: 22px; }
+    .card { background: #1a222c; border: 1px solid #2c3845; border-radius: 12px; padding: 16px; margin: 16px 0; }
+    .card.pass { border-color: #3dd68c; }
+    .card.fail { border-color: #ff6b6b; }
+    header { display: flex; justify-content: space-between; gap: 12px; align-items: baseline; }
+    .attempt { background: #12181f; border-radius: 8px; padding: 12px; margin: 12px 0; }
+    .ok { color: #3dd68c; }
+    .bad { color: #ff6b6b; }
+    .fail { color: #ffb020; }
+    .recover { color: #6cb8ff; }
+    .timeline { padding-left: 18px; }
+    .timeline li { margin: 8px 0; }
+    .meta { color: #9aa8b5; font-size: 12px; }
+    pre { white-space: pre-wrap; background: #0b0f14; padding: 8px; border-radius: 6px; overflow: auto; }
+  </style>
+</head>
+<body>
+  <h1>Failure-Aware 主线 Trace</h1>
+  <p>Agent 说完成不算数。下面是 Verifier / Analyzer / Recovery 的真实轨迹。</p>
+  <section class="card pass">
+        <header>
+          <h2>提前完成 → 对症补全</h2>
+          <span>最终 PASS · 恢复 1 次</span>
+        </header>
+        <article class="attempt">
+            <h3>第 1 次 · Verifier fail</h3>
+            <p>Agent：已经完成，result.json 里有 3 个商品。</p>
+            <ul class="checks"><li class="ok">file_exists: 文件存在：result.json</li><li class="bad">count: result.json 要求 5 条，实际 3 条</li><li class="ok">tool_result: 工具调用全部成功（1 次）</li></ul>
+            <p class="fail">失败类型：premature_completion</p>
+            <p class="recover">恢复：continue_execution — 产物不够，保留工作区继续补全，而不是从头重跑</p>
+          </article><article class="attempt">
+            <h3>第 2 次 · Verifier pass</h3>
+            <p>Agent：已经完成，result.json 里有 5 个商品。</p>
+            <ul class="checks"><li class="ok">file_exists: 文件存在：result.json</li><li class="ok">count: result.json 中有 5 条，符合要求</li><li class="ok">tool_result: 工具调用全部成功（1 次）</li></ul>
+            
+            
+          </article>
+        <details>
+          <summary>完整 Trace</summary>
+          <ol class="timeline"><li class="ev-plain">
+        <div class="meta">step 0 · run_started</div>
+        <pre>{
+  &quot;taskId&quot;: &quot;products&quot;,
+  &quot;description&quot;: &quot;创建 result.json，里面必须有 5 个商品。&quot;
+}</pre>
+      </li><li class="ev-plain">
+        <div class="meta">step 0 · attempt_started</div>
+        <pre>{
+  &quot;attempt&quot;: 1
+}</pre>
+      </li><li class="ev-plain">
+        <div class="meta">step 1 · model_call</div>
+        <pre>{
+  &quot;attempt&quot;: 1,
+  &quot;task&quot;: &quot;创建 result.json，里面必须有 5 个商品。&quot;,
+  &quot;historyLength&quot;: 1
+}</pre>
+      </li><li class="ev-tool">
+        <div class="meta">step 1 · tool_call</div>
+        <pre>{
+  &quot;attempt&quot;: 1,
+  &quot;tool&quot;: &quot;write_json&quot;,
+  &quot;arguments&quot;: {
+    &quot;path&quot;: &quot;result.json&quot;,
+    &quot;data&quot;: [
+      {
+        &quot;id&quot;: 1,
+        &quot;name&quot;: &quot;商品A&quot;
+      },
+      {
+        &quot;id&quot;: 2,
+        &quot;name&quot;: &quot;商品B&quot;
+      },
+      {
+        &quot;id&quot;: 3,
+        &quot;name&quot;: &quot;商品C&quot;
+      }
+    ]
+  },
+  &quot;historyLength&quot;: 2
+}</pre>
+      </li><li class="ev-tool">
+        <div class="meta">step 1 · tool_result</div>
+        <pre>{
+  &quot;attempt&quot;: 1,
+  &quot;callId&quot;: &quot;95be0b8b-8c89-4441-b038-4d40c2e06d10&quot;,
+  &quot;success&quot;: true,
+  &quot;output&quot;: {
+    &quot;path&quot;: &quot;result.json&quot;,
+    &quot;itemCount&quot;: 3
+  },
+  &quot;historyLength&quot;: 3
+}</pre>
+      </li><li class="ev-plain">
+        <div class="meta">step 2 · model_call</div>
+        <pre>{
+  &quot;attempt&quot;: 1,
+  &quot;task&quot;: &quot;创建 result.json，里面必须有 5 个商品。&quot;,
+  &quot;historyLength&quot;: 3
+}</pre>
+      </li><li class="ev-plain">
+        <div class="meta">step 2 · run_completed</div>
+        <pre>{
+  &quot;attempt&quot;: 1,
+  &quot;message&quot;: &quot;已经完成，result.json 里有 3 个商品。&quot;,
+  &quot;historyLength&quot;: 4
+}</pre>
+      </li><li class="ev-verify">
+        <div class="meta">step 2 · verification</div>
+        <pre>{
+  &quot;attempt&quot;: 1,
+  &quot;status&quot;: &quot;fail&quot;,
+  &quot;prematureCompletion&quot;: true,
+  &quot;checks&quot;: [
+    {
+      &quot;name&quot;: &quot;file_exists&quot;,
+      &quot;passed&quot;: true,
+      &quot;expected&quot;: &quot;result.json&quot;,
+      &quot;actual&quot;: &quot;result.json&quot;,
+      &quot;reason&quot;: &quot;文件存在：result.json&quot;
+    },
+    {
+      &quot;name&quot;: &quot;count&quot;,
+      &quot;passed&quot;: false,
+      &quot;expected&quot;: 5,
+      &quot;actual&quot;: 3,
+      &quot;reason&quot;: &quot;result.json 要求 5 条，实际 3 条&quot;
+    },
+    {
+      &quot;name&quot;: &quot;tool_result&quot;,
+      &quot;passed&quot;: true,
+      &quot;expected&quot;: &quot;所有 tool_result.success === true&quot;,
+      &quot;actual&quot;: {
+        &quot;total&quot;: 1,
+        &quot;failed&quot;: 0
+      },
+      &quot;reason&quot;: &quot;工具调用全部成功（1 次）&quot;
+    }
+  ]
+}</pre>
+      </li><li class="ev-fail">
+        <div class="meta">step 2 · failure</div>
+        <pre>{
+  &quot;attempt&quot;: 1,
+  &quot;type&quot;: &quot;premature_completion&quot;,
+  &quot;rootCause&quot;: &quot;agent_claimed_success_but_outcome_unmet&quot;
+}</pre>
+      </li><li class="ev-recover">
+        <div class="meta">step 2 · recovery</div>
+        <pre>{
+  &quot;attempt&quot;: 1,
+  &quot;action&quot;: &quot;continue_execution&quot;,
+  &quot;reason&quot;: &quot;产物不够，保留工作区继续补全，而不是从头重跑&quot;
+}</pre>
+      </li><li class="ev-plain">
+        <div class="meta">step 0 · attempt_started</div>
+        <pre>{
+  &quot;attempt&quot;: 2
+}</pre>
+      </li><li class="ev-plain">
+        <div class="meta">step 1 · model_call</div>
+        <pre>{
+  &quot;attempt&quot;: 2,
+  &quot;task&quot;: &quot;创建 result.json，里面必须有 5 个商品。&quot;,
+  &quot;historyLength&quot;: 1
+}</pre>
+      </li><li class="ev-tool">
+        <div class="meta">step 1 · tool_call</div>
+        <pre>{
+  &quot;attempt&quot;: 2,
+  &quot;tool&quot;: &quot;write_json&quot;,
+  &quot;arguments&quot;: {
+    &quot;path&quot;: &quot;result.json&quot;,
+    &quot;data&quot;: [
+      {
+        &quot;id&quot;: 1,
+        &quot;name&quot;: &quot;商品A&quot;
+      },
+      {
+        &quot;id&quot;: 2,
+        &quot;name&quot;: &quot;商品B&quot;
+      },
+      {
+        &quot;id&quot;: 3,
+        &quot;name&quot;: &quot;商品C&quot;
+      },
+      {
+        &quot;id&quot;: 4,
+        &quot;name&quot;: &quot;商品D&quot;
+      },
+      {
+        &quot;id&quot;: 5,
+        &quot;name&quot;: &quot;商品E&quot;
+      }
+    ]
+  },
+  &quot;historyLength&quot;: 2
+}</pre>
+      </li><li class="ev-tool">
+        <div class="meta">step 1 · tool_result</div>
+        <pre>{
+  &quot;attempt&quot;: 2,
+  &quot;callId&quot;: &quot;40e777c6-fd82-4faf-b4be-37308c7556d3&quot;,
+  &quot;success&quot;: true,
+  &quot;output&quot;: {
+    &quot;path&quot;: &quot;result.json&quot;,
+    &quot;itemCount&quot;: 5
+  },
+  &quot;historyLength&quot;: 3
+}</pre>
+      </li><li class="ev-plain">
+        <div class="meta">step 2 · model_call</div>
+        <pre>{
+  &quot;attempt&quot;: 2,
+  &quot;task&quot;: &quot;创建 result.json，里面必须有 5 个商品。&quot;,
+  &quot;historyLength&quot;: 3
+}</pre>
+      </li><li class="ev-plain">
+        <div class="meta">step 2 · run_completed</div>
+        <pre>{
+  &quot;attempt&quot;: 2,
+  &quot;message&quot;: &quot;已经完成，result.json 里有 5 个商品。&quot;,
+  &quot;historyLength&quot;: 4
+}</pre>
+      </li><li class="ev-verify">
+        <div class="meta">step 2 · verification</div>
+        <pre>{
+  &quot;attempt&quot;: 2,
+  &quot;status&quot;: &quot;pass&quot;,
+  &quot;prematureCompletion&quot;: false,
+  &quot;checks&quot;: [
+    {
+      &quot;name&quot;: &quot;file_exists&quot;,
+      &quot;passed&quot;: true,
+      &quot;expected&quot;: &quot;result.json&quot;,
+      &quot;actual&quot;: &quot;result.json&quot;,
+      &quot;reason&quot;: &quot;文件存在：result.json&quot;
+    },
+    {
+      &quot;name&quot;: &quot;count&quot;,
+      &quot;passed&quot;: true,
+      &quot;expected&quot;: 5,
+      &quot;actual&quot;: 5,
+      &quot;reason&quot;: &quot;result.json 中有 5 条，符合要求&quot;
+    },
+    {
+      &quot;name&quot;: &quot;tool_result&quot;,
+      &quot;passed&quot;: true,
+      &quot;expected&quot;: &quot;所有 tool_result.success === true&quot;,
+      &quot;actual&quot;: {
+        &quot;total&quot;: 1,
+        &quot;failed&quot;: 0
+      },
+      &quot;reason&quot;: &quot;工具调用全部成功（1 次）&quot;
+    }
+  ]
+}</pre>
+      </li></ol>
+        </details>
+      </section><section class="card pass">
+        <header>
+          <h2>工具失败 → 再试一次</h2>
+          <span>最终 PASS · 恢复 1 次</span>
+        </header>
+        <article class="attempt">
+            <h3>第 1 次 · Verifier fail</h3>
+            <p>Agent：工具执行失败：temporary write failure</p>
+            <ul class="checks"><li class="bad">file_exists: 任务要求生成 result.json，实际不存在</li><li class="bad">count: result.json 要求 5 条，实际 0 条</li><li class="bad">tool_result: 有 1 次工具调用失败</li></ul>
+            <p class="fail">失败类型：tool_failure</p>
+            <p class="recover">恢复：retry_tool — 工具失败，按原任务再试一次</p>
+          </article><article class="attempt">
+            <h3>第 2 次 · Verifier pass</h3>
+            <p>Agent：已经完成，result.json 里有 5 个商品。</p>
+            <ul class="checks"><li class="ok">file_exists: 文件存在：result.json</li><li class="ok">count: result.json 中有 5 条，符合要求</li><li class="ok">tool_result: 工具调用全部成功（1 次）</li></ul>
+            
+            
+          </article>
+        <details>
+          <summary>完整 Trace</summary>
+          <ol class="timeline"><li class="ev-plain">
+        <div class="meta">step 0 · run_started</div>
+        <pre>{
+  &quot;taskId&quot;: &quot;products&quot;,
+  &quot;description&quot;: &quot;创建 result.json，里面必须有 5 个商品。&quot;
+}</pre>
+      </li><li class="ev-plain">
+        <div class="meta">step 0 · attempt_started</div>
+        <pre>{
+  &quot;attempt&quot;: 1
+}</pre>
+      </li><li class="ev-plain">
+        <div class="meta">step 1 · model_call</div>
+        <pre>{
+  &quot;attempt&quot;: 1,
+  &quot;task&quot;: &quot;创建 result.json，里面必须有 5 个商品。&quot;,
+  &quot;historyLength&quot;: 1
+}</pre>
+      </li><li class="ev-tool">
+        <div class="meta">step 1 · tool_call</div>
+        <pre>{
+  &quot;attempt&quot;: 1,
+  &quot;tool&quot;: &quot;write_json&quot;,
+  &quot;arguments&quot;: {
+    &quot;path&quot;: &quot;result.json&quot;,
+    &quot;data&quot;: [
+      {
+        &quot;id&quot;: 1,
+        &quot;name&quot;: &quot;商品A&quot;
+      },
+      {
+        &quot;id&quot;: 2,
+        &quot;name&quot;: &quot;商品B&quot;
+      },
+      {
+        &quot;id&quot;: 3,
+        &quot;name&quot;: &quot;商品C&quot;
+      },
+      {
+        &quot;id&quot;: 4,
+        &quot;name&quot;: &quot;商品D&quot;
+      },
+      {
+        &quot;id&quot;: 5,
+        &quot;name&quot;: &quot;商品E&quot;
+      }
+    ]
+  },
+  &quot;historyLength&quot;: 2
+}</pre>
+      </li><li class="ev-tool">
+        <div class="meta">step 1 · tool_result</div>
+        <pre>{
+  &quot;attempt&quot;: 1,
+  &quot;callId&quot;: &quot;44d39eec-3537-4360-b8a0-cfbdcf87b656&quot;,
+  &quot;success&quot;: false,
+  &quot;error&quot;: &quot;temporary write failure&quot;,
+  &quot;historyLength&quot;: 3
+}</pre>
+      </li><li class="ev-plain">
+        <div class="meta">step 2 · model_call</div>
+        <pre>{
+  &quot;attempt&quot;: 1,
+  &quot;task&quot;: &quot;创建 result.json，里面必须有 5 个商品。&quot;,
+  &quot;historyLength&quot;: 3
+}</pre>
+      </li><li class="ev-plain">
+        <div class="meta">step 2 · run_completed</div>
+        <pre>{
+  &quot;attempt&quot;: 1,
+  &quot;message&quot;: &quot;工具执行失败：temporary write failure&quot;,
+  &quot;historyLength&quot;: 4
+}</pre>
+      </li><li class="ev-verify">
+        <div class="meta">step 2 · verification</div>
+        <pre>{
+  &quot;attempt&quot;: 1,
+  &quot;status&quot;: &quot;fail&quot;,
+  &quot;prematureCompletion&quot;: false,
+  &quot;checks&quot;: [
+    {
+      &quot;name&quot;: &quot;file_exists&quot;,
+      &quot;passed&quot;: false,
+      &quot;expected&quot;: &quot;result.json&quot;,
+      &quot;reason&quot;: &quot;任务要求生成 result.json，实际不存在&quot;
+    },
+    {
+      &quot;name&quot;: &quot;count&quot;,
+      &quot;passed&quot;: false,
+      &quot;expected&quot;: 5,
+      &quot;reason&quot;: &quot;result.json 要求 5 条，实际 0 条&quot;
+    },
+    {
+      &quot;name&quot;: &quot;tool_result&quot;,
+      &quot;passed&quot;: false,
+      &quot;expected&quot;: &quot;所有 tool_result.success === true&quot;,
+      &quot;actual&quot;: {
+        &quot;total&quot;: 1,
+        &quot;failed&quot;: 1
+      },
+      &quot;reason&quot;: &quot;有 1 次工具调用失败&quot;
+    }
+  ]
+}</pre>
+      </li><li class="ev-fail">
+        <div class="meta">step 2 · failure</div>
+        <pre>{
+  &quot;attempt&quot;: 1,
+  &quot;type&quot;: &quot;tool_failure&quot;,
+  &quot;rootCause&quot;: &quot;tool_result_failed&quot;
+}</pre>
+      </li><li class="ev-recover">
+        <div class="meta">step 2 · recovery</div>
+        <pre>{
+  &quot;attempt&quot;: 1,
+  &quot;action&quot;: &quot;retry_tool&quot;,
+  &quot;reason&quot;: &quot;工具失败，按原任务再试一次&quot;
+}</pre>
+      </li><li class="ev-plain">
+        <div class="meta">step 0 · attempt_started</div>
+        <pre>{
+  &quot;attempt&quot;: 2
+}</pre>
+      </li><li class="ev-plain">
+        <div class="meta">step 1 · model_call</div>
+        <pre>{
+  &quot;attempt&quot;: 2,
+  &quot;task&quot;: &quot;创建 result.json，里面必须有 5 个商品。&quot;,
+  &quot;historyLength&quot;: 1
+}</pre>
+      </li><li class="ev-tool">
+        <div class="meta">step 1 · tool_call</div>
+        <pre>{
+  &quot;attempt&quot;: 2,
+  &quot;tool&quot;: &quot;write_json&quot;,
+  &quot;arguments&quot;: {
+    &quot;path&quot;: &quot;result.json&quot;,
+    &quot;data&quot;: [
+      {
+        &quot;id&quot;: 1,
+        &quot;name&quot;: &quot;商品A&quot;
+      },
+      {
+        &quot;id&quot;: 2,
+        &quot;name&quot;: &quot;商品B&quot;
+      },
+      {
+        &quot;id&quot;: 3,
+        &quot;name&quot;: &quot;商品C&quot;
+      },
+      {
+        &quot;id&quot;: 4,
+        &quot;name&quot;: &quot;商品D&quot;
+      },
+      {
+        &quot;id&quot;: 5,
+        &quot;name&quot;: &quot;商品E&quot;
+      }
+    ]
+  },
+  &quot;historyLength&quot;: 2
+}</pre>
+      </li><li class="ev-tool">
+        <div class="meta">step 1 · tool_result</div>
+        <pre>{
+  &quot;attempt&quot;: 2,
+  &quot;callId&quot;: &quot;656115ef-0d76-4274-bb76-ad516704a07c&quot;,
+  &quot;success&quot;: true,
+  &quot;output&quot;: {
+    &quot;path&quot;: &quot;result.json&quot;,
+    &quot;itemCount&quot;: 5
+  },
+  &quot;historyLength&quot;: 3
+}</pre>
+      </li><li class="ev-plain">
+        <div class="meta">step 2 · model_call</div>
+        <pre>{
+  &quot;attempt&quot;: 2,
+  &quot;task&quot;: &quot;创建 result.json，里面必须有 5 个商品。&quot;,
+  &quot;historyLength&quot;: 3
+}</pre>
+      </li><li class="ev-plain">
+        <div class="meta">step 2 · run_completed</div>
+        <pre>{
+  &quot;attempt&quot;: 2,
+  &quot;message&quot;: &quot;已经完成，result.json 里有 5 个商品。&quot;,
+  &quot;historyLength&quot;: 4
+}</pre>
+      </li><li class="ev-verify">
+        <div class="meta">step 2 · verification</div>
+        <pre>{
+  &quot;attempt&quot;: 2,
+  &quot;status&quot;: &quot;pass&quot;,
+  &quot;prematureCompletion&quot;: false,
+  &quot;checks&quot;: [
+    {
+      &quot;name&quot;: &quot;file_exists&quot;,
+      &quot;passed&quot;: true,
+      &quot;expected&quot;: &quot;result.json&quot;,
+      &quot;actual&quot;: &quot;result.json&quot;,
+      &quot;reason&quot;: &quot;文件存在：result.json&quot;
+    },
+    {
+      &quot;name&quot;: &quot;count&quot;,
+      &quot;passed&quot;: true,
+      &quot;expected&quot;: 5,
+      &quot;actual&quot;: 5,
+      &quot;reason&quot;: &quot;result.json 中有 5 条，符合要求&quot;
+    },
+    {
+      &quot;name&quot;: &quot;tool_result&quot;,
+      &quot;passed&quot;: true,
+      &quot;expected&quot;: &quot;所有 tool_result.success === true&quot;,
+      &quot;actual&quot;: {
+        &quot;total&quot;: 1,
+        &quot;failed&quot;: 0
+      },
+      &quot;reason&quot;: &quot;工具调用全部成功（1 次）&quot;
+    }
+  ]
+}</pre>
+      </li></ol>
+        </details>
+      </section><section class="card pass">
+        <header>
+          <h2>检索跑偏 → BM25 hybrid</h2>
+          <span>最终 PASS · 恢复 1 次</span>
+        </header>
+        <article class="attempt">
+            <h3>第 1 次 · Verifier fail</h3>
+            <p>Agent：已经完成，相关资料都找到了。</p>
+            <ul class="checks"><li class="bad">evidence: 相关文档要求 3 条，实际 0 条</li><li class="ok">tool_result: 工具调用全部成功（1 次）</li></ul>
+            <p class="fail">失败类型：retrieval_failure</p>
+            <p class="recover">恢复：change_retrieval_strategy — 召回不足，改用 BM25 召回再 TF-IDF 重排</p>
+          </article><article class="attempt">
+            <h3>第 2 次 · Verifier pass</h3>
+            <p>Agent：已经完成。引用：Attention Is All You Need；BERT: Pre-training of Deep Bidirectional Transformers；Transformer 架构综述</p>
+            <ul class="checks"><li class="ok">evidence: 相关文档 3 条，达到 3 条</li><li class="ok">citation: 终答引用了 3 条相关文档</li><li class="ok">tool_result: 工具调用全部成功（1 次）</li></ul>
+            
+            
+          </article>
+        <details>
+          <summary>完整 Trace</summary>
+          <ol class="timeline"><li class="ev-plain">
+        <div class="meta">step 0 · run_started</div>
+        <pre>{
+  &quot;taskId&quot;: &quot;retrieval&quot;,
+  &quot;description&quot;: &quot;检索 Transformer 相关资料，至少 3 条相关结果。&quot;
+}</pre>
+      </li><li class="ev-plain">
+        <div class="meta">step 0 · attempt_started</div>
+        <pre>{
+  &quot;attempt&quot;: 1
+}</pre>
+      </li><li class="ev-plain">
+        <div class="meta">step 1 · model_call</div>
+        <pre>{
+  &quot;attempt&quot;: 1,
+  &quot;task&quot;: &quot;检索 Transformer 相关资料，至少 3 条相关结果。&quot;,
+  &quot;historyLength&quot;: 1
+}</pre>
+      </li><li class="ev-tool">
+        <div class="meta">step 1 · tool_call</div>
+        <pre>{
+  &quot;attempt&quot;: 1,
+  &quot;tool&quot;: &quot;search&quot;,
+  &quot;arguments&quot;: {
+    &quot;query&quot;: &quot;Transformer attention BERT&quot;
+  },
+  &quot;historyLength&quot;: 2
+}</pre>
+      </li><li class="ev-tool">
+        <div class="meta">step 1 · tool_result</div>
+        <pre>{
+  &quot;attempt&quot;: 1,
+  &quot;callId&quot;: &quot;a5c73313-e7bb-47f6-9cd4-91da2015c348&quot;,
+  &quot;success&quot;: true,
+  &quot;output&quot;: {
+    &quot;strategy&quot;: &quot;embedding&quot;,
+    &quot;relevantCount&quot;: 0,
+    &quot;hits&quot;: [
+      {
+        &quot;id&quot;: &quot;d5&quot;,
+        &quot;title&quot;: &quot;附近美食推荐&quot;,
+        &quot;body&quot;: &quot;热门推荐 周末出游 人气指南 摘要合集 热门推荐 周末出游 人气指南 摘要合集 热门推荐 周末出游 人气指南 摘要合集 火锅烧烤奶茶小吃街人气餐厅排队指南。周末美食和天气一样要看人气。&quot;,
+        &quot;score&quot;: 0.5623,
+        &quot;relevant&quot;: false
+      },
+      {
+        &quot;id&quot;: &quot;d7&quot;,
+        &quot;title&quot;: &quot;北京旅游攻略&quot;,
+        &quot;body&quot;: &quot;热门推荐 周末出游 人气指南 摘要合集 热门推荐 周末出游 人气指南 摘要合集 热门推荐 周末出游 人气指南 摘要合集 故宫长城颐和园门票预约和交通路线。周末出游记得看天气和美食。&quot;,
+        &quot;score&quot;: 0.5586,
+        &quot;relevant&quot;: false
+      },
+      {
+        &quot;id&quot;: &quot;d4&quot;,
+        &quot;title&quot;: &quot;今日天气预报&quot;,
+        &quot;body&quot;: &quot;热门推荐 周末出游 人气指南 摘要合集 热门推荐 周末出游 人气指南 摘要合集 热门推荐 周末出游 人气指南 摘要合集 明天多云转晴，气温摄氏度，记得带伞。周末出游先看天气。&quot;,
+        &quot;score&quot;: 0.556,
+        &quot;relevant&quot;: false
+      }
+    ]
+  },
+  &quot;historyLength&quot;: 3
+}</pre>
+      </li><li class="ev-plain">
+        <div class="meta">step 2 · model_call</div>
+        <pre>{
+  &quot;attempt&quot;: 1,
+  &quot;task&quot;: &quot;检索 Transformer 相关资料，至少 3 条相关结果。&quot;,
+  &quot;historyLength&quot;: 3
+}</pre>
+      </li><li class="ev-plain">
+        <div class="meta">step 2 · run_completed</div>
+        <pre>{
+  &quot;attempt&quot;: 1,
+  &quot;message&quot;: &quot;已经完成，相关资料都找到了。&quot;,
+  &quot;historyLength&quot;: 4
+}</pre>
+      </li><li class="ev-verify">
+        <div class="meta">step 2 · verification</div>
+        <pre>{
+  &quot;attempt&quot;: 1,
+  &quot;status&quot;: &quot;fail&quot;,
+  &quot;prematureCompletion&quot;: false,
+  &quot;checks&quot;: [
+    {
+      &quot;name&quot;: &quot;evidence&quot;,
+      &quot;passed&quot;: false,
+      &quot;expected&quot;: 3,
+      &quot;actual&quot;: 0,
+      &quot;reason&quot;: &quot;相关文档要求 3 条，实际 0 条&quot;
+    },
+    {
+      &quot;name&quot;: &quot;tool_result&quot;,
+      &quot;passed&quot;: true,
+      &quot;expected&quot;: &quot;所有 tool_result.success === true&quot;,
+      &quot;actual&quot;: {
+        &quot;total&quot;: 1,
+        &quot;failed&quot;: 0
+      },
+      &quot;reason&quot;: &quot;工具调用全部成功（1 次）&quot;
+    }
+  ]
+}</pre>
+      </li><li class="ev-fail">
+        <div class="meta">step 2 · failure</div>
+        <pre>{
+  &quot;attempt&quot;: 1,
+  &quot;type&quot;: &quot;retrieval_failure&quot;,
+  &quot;rootCause&quot;: &quot;recall_insufficient&quot;
+}</pre>
+      </li><li class="ev-recover">
+        <div class="meta">step 2 · recovery</div>
+        <pre>{
+  &quot;attempt&quot;: 1,
+  &quot;action&quot;: &quot;change_retrieval_strategy&quot;,
+  &quot;reason&quot;: &quot;召回不足，改用 BM25 召回再 TF-IDF 重排&quot;
+}</pre>
+      </li><li class="ev-plain">
+        <div class="meta">step 0 · attempt_started</div>
+        <pre>{
+  &quot;attempt&quot;: 2
+}</pre>
+      </li><li class="ev-plain">
+        <div class="meta">step 1 · model_call</div>
+        <pre>{
+  &quot;attempt&quot;: 2,
+  &quot;task&quot;: &quot;检索 Transformer 相关资料，至少 3 条相关结果。&quot;,
+  &quot;historyLength&quot;: 1
+}</pre>
+      </li><li class="ev-tool">
+        <div class="meta">step 1 · tool_call</div>
+        <pre>{
+  &quot;attempt&quot;: 2,
+  &quot;tool&quot;: &quot;search&quot;,
+  &quot;arguments&quot;: {
+    &quot;query&quot;: &quot;Transformer attention BERT&quot;
+  },
+  &quot;historyLength&quot;: 2
+}</pre>
+      </li><li class="ev-tool">
+        <div class="meta">step 1 · tool_result</div>
+        <pre>{
+  &quot;attempt&quot;: 2,
+  &quot;callId&quot;: &quot;1e61e46b-ea3e-46bb-a7e3-246ccdc62fa5&quot;,
+  &quot;success&quot;: true,
+  &quot;output&quot;: {
+    &quot;strategy&quot;: &quot;hybrid&quot;,
+    &quot;relevantCount&quot;: 3,
+    &quot;hits&quot;: [
+      {
+        &quot;id&quot;: &quot;d1&quot;,
+        &quot;title&quot;: &quot;Attention Is All You Need&quot;,
+        &quot;body&quot;: &quot;Transformer self-attention encoder decoder neural machine translation architecture BERT-era sequence models.&quot;,
+        &quot;score&quot;: 0.3341,
+        &quot;relevant&quot;: true
+      },
+      {
+        &quot;id&quot;: &quot;d3&quot;,
+        &quot;title&quot;: &quot;BERT: Pre-training of Deep Bidirectional Transformers&quot;,
+        &quot;body&quot;: &quot;BERT masked language model bidirectional transformer encoder pretraining attention architecture.&quot;,
+        &quot;score&quot;: 0.3233,
+        &quot;relevant&quot;: true
+      },
+      {
+        &quot;id&quot;: &quot;d2&quot;,
+        &quot;title&quot;: &quot;Transformer 架构综述&quot;,
+        &quot;body&quot;: &quot;自注意力机制 Transformer architecture attention BERT GPT 都建立在同一套编码器结构上。&quot;,
+        &quot;score&quot;: 0.1955,
+        &quot;relevant&quot;: true
+      }
+    ]
+  },
+  &quot;historyLength&quot;: 3
+}</pre>
+      </li><li class="ev-plain">
+        <div class="meta">step 2 · model_call</div>
+        <pre>{
+  &quot;attempt&quot;: 2,
+  &quot;task&quot;: &quot;检索 Transformer 相关资料，至少 3 条相关结果。&quot;,
+  &quot;historyLength&quot;: 3
+}</pre>
+      </li><li class="ev-plain">
+        <div class="meta">step 2 · run_completed</div>
+        <pre>{
+  &quot;attempt&quot;: 2,
+  &quot;message&quot;: &quot;已经完成。引用：Attention Is All You Need；BERT: Pre-training of Deep Bidirectional Transformers；Transformer 架构综述&quot;,
+  &quot;historyLength&quot;: 4
+}</pre>
+      </li><li class="ev-verify">
+        <div class="meta">step 2 · verification</div>
+        <pre>{
+  &quot;attempt&quot;: 2,
+  &quot;status&quot;: &quot;pass&quot;,
+  &quot;prematureCompletion&quot;: false,
+  &quot;checks&quot;: [
+    {
+      &quot;name&quot;: &quot;evidence&quot;,
+      &quot;passed&quot;: true,
+      &quot;expected&quot;: 3,
+      &quot;actual&quot;: 3,
+      &quot;reason&quot;: &quot;相关文档 3 条，达到 3 条&quot;
+    },
+    {
+      &quot;name&quot;: &quot;citation&quot;,
+      &quot;passed&quot;: true,
+      &quot;expected&quot;: 3,
+      &quot;actual&quot;: 3,
+      &quot;reason&quot;: &quot;终答引用了 3 条相关文档&quot;
+    },
+    {
+      &quot;name&quot;: &quot;tool_result&quot;,
+      &quot;passed&quot;: true,
+      &quot;expected&quot;: &quot;所有 tool_result.success === true&quot;,
+      &quot;actual&quot;: {
+        &quot;total&quot;: 1,
+        &quot;failed&quot;: 0
+      },
+      &quot;reason&quot;: &quot;工具调用全部成功（1 次）&quot;
+    }
+  ]
+}</pre>
+      </li></ol>
+        </details>
+      </section><section class="card fail">
+        <header>
+          <h2>循环打转 → 停下来</h2>
+          <span>最终 FAIL · 恢复 0 次</span>
+        </header>
+        <article class="attempt">
+            <h3>第 1 次 · Verifier fail</h3>
+            <p>Agent：Maximum step limit reached.</p>
+            <ul class="checks"><li class="bad">agent_status: Maximum step limit reached.</li><li class="ok">tool_result: 工具调用全部成功（4 次）</li></ul>
+            <p class="fail">失败类型：loop_failure</p>
+            <p class="recover">恢复：stop — 已经在原地打转，再 Retry 只会烧步数</p>
+          </article>
+        <details>
+          <summary>完整 Trace</summary>
+          <ol class="timeline"><li class="ev-plain">
+        <div class="meta">step 0 · run_started</div>
+        <pre>{
+  &quot;taskId&quot;: &quot;loop&quot;,
+  &quot;description&quot;: &quot;计算 1 + 1，但模型会一直调工具。&quot;
+}</pre>
+      </li><li class="ev-plain">
+        <div class="meta">step 0 · attempt_started</div>
+        <pre>{
+  &quot;attempt&quot;: 1
+}</pre>
+      </li><li class="ev-plain">
+        <div class="meta">step 1 · model_call</div>
+        <pre>{
+  &quot;attempt&quot;: 1,
+  &quot;task&quot;: &quot;计算 1 + 1，但模型会一直调工具。&quot;,
+  &quot;historyLength&quot;: 1
+}</pre>
+      </li><li class="ev-tool">
+        <div class="meta">step 1 · tool_call</div>
+        <pre>{
+  &quot;attempt&quot;: 1,
+  &quot;tool&quot;: &quot;calculator&quot;,
+  &quot;arguments&quot;: {
+    &quot;expression&quot;: &quot;1 + 1&quot;
+  },
+  &quot;historyLength&quot;: 2
+}</pre>
+      </li><li class="ev-tool">
+        <div class="meta">step 1 · tool_result</div>
+        <pre>{
+  &quot;attempt&quot;: 1,
+  &quot;callId&quot;: &quot;45fced73-27fc-4a33-a32f-7156171e8d42&quot;,
+  &quot;success&quot;: true,
+  &quot;output&quot;: 2,
+  &quot;historyLength&quot;: 3
+}</pre>
+      </li><li class="ev-plain">
+        <div class="meta">step 2 · model_call</div>
+        <pre>{
+  &quot;attempt&quot;: 1,
+  &quot;task&quot;: &quot;计算 1 + 1，但模型会一直调工具。&quot;,
+  &quot;historyLength&quot;: 3
+}</pre>
+      </li><li class="ev-tool">
+        <div class="meta">step 2 · tool_call</div>
+        <pre>{
+  &quot;attempt&quot;: 1,
+  &quot;tool&quot;: &quot;calculator&quot;,
+  &quot;arguments&quot;: {
+    &quot;expression&quot;: &quot;1 + 1&quot;
+  },
+  &quot;historyLength&quot;: 4
+}</pre>
+      </li><li class="ev-tool">
+        <div class="meta">step 2 · tool_result</div>
+        <pre>{
+  &quot;attempt&quot;: 1,
+  &quot;callId&quot;: &quot;4fddd5f3-43d6-495a-988f-ce9387b136cb&quot;,
+  &quot;success&quot;: true,
+  &quot;output&quot;: 2,
+  &quot;historyLength&quot;: 5
+}</pre>
+      </li><li class="ev-plain">
+        <div class="meta">step 3 · model_call</div>
+        <pre>{
+  &quot;attempt&quot;: 1,
+  &quot;task&quot;: &quot;计算 1 + 1，但模型会一直调工具。&quot;,
+  &quot;historyLength&quot;: 5
+}</pre>
+      </li><li class="ev-tool">
+        <div class="meta">step 3 · tool_call</div>
+        <pre>{
+  &quot;attempt&quot;: 1,
+  &quot;tool&quot;: &quot;calculator&quot;,
+  &quot;arguments&quot;: {
+    &quot;expression&quot;: &quot;1 + 1&quot;
+  },
+  &quot;historyLength&quot;: 6
+}</pre>
+      </li><li class="ev-tool">
+        <div class="meta">step 3 · tool_result</div>
+        <pre>{
+  &quot;attempt&quot;: 1,
+  &quot;callId&quot;: &quot;2ea95c5e-4382-4154-9a38-6a46a9c1e6f9&quot;,
+  &quot;success&quot;: true,
+  &quot;output&quot;: 2,
+  &quot;historyLength&quot;: 7
+}</pre>
+      </li><li class="ev-plain">
+        <div class="meta">step 4 · model_call</div>
+        <pre>{
+  &quot;attempt&quot;: 1,
+  &quot;task&quot;: &quot;计算 1 + 1，但模型会一直调工具。&quot;,
+  &quot;historyLength&quot;: 7
+}</pre>
+      </li><li class="ev-tool">
+        <div class="meta">step 4 · tool_call</div>
+        <pre>{
+  &quot;attempt&quot;: 1,
+  &quot;tool&quot;: &quot;calculator&quot;,
+  &quot;arguments&quot;: {
+    &quot;expression&quot;: &quot;1 + 1&quot;
+  },
+  &quot;historyLength&quot;: 8
+}</pre>
+      </li><li class="ev-tool">
+        <div class="meta">step 4 · tool_result</div>
+        <pre>{
+  &quot;attempt&quot;: 1,
+  &quot;callId&quot;: &quot;d2bcc6fd-a885-4bf6-9dcc-da60633bc193&quot;,
+  &quot;success&quot;: true,
+  &quot;output&quot;: 2,
+  &quot;historyLength&quot;: 9
+}</pre>
+      </li><li class="ev-verify">
+        <div class="meta">step 4 · verification</div>
+        <pre>{
+  &quot;attempt&quot;: 1,
+  &quot;status&quot;: &quot;fail&quot;,
+  &quot;prematureCompletion&quot;: false,
+  &quot;checks&quot;: [
+    {
+      &quot;name&quot;: &quot;agent_status&quot;,
+      &quot;passed&quot;: false,
+      &quot;expected&quot;: &quot;completed&quot;,
+      &quot;actual&quot;: &quot;failed&quot;,
+      &quot;reason&quot;: &quot;Maximum step limit reached.&quot;
+    },
+    {
+      &quot;name&quot;: &quot;tool_result&quot;,
+      &quot;passed&quot;: true,
+      &quot;expected&quot;: &quot;所有 tool_result.success === true&quot;,
+      &quot;actual&quot;: {
+        &quot;total&quot;: 4,
+        &quot;failed&quot;: 0
+      },
+      &quot;reason&quot;: &quot;工具调用全部成功（4 次）&quot;
+    }
+  ]
+}</pre>
+      </li><li class="ev-fail">
+        <div class="meta">step 4 · failure</div>
+        <pre>{
+  &quot;attempt&quot;: 1,
+  &quot;type&quot;: &quot;loop_failure&quot;,
+  &quot;rootCause&quot;: &quot;repeated_tool_call&quot;
+}</pre>
+      </li><li class="ev-recover">
+        <div class="meta">step 4 · recovery</div>
+        <pre>{
+  &quot;attempt&quot;: 1,
+  &quot;action&quot;: &quot;stop&quot;,
+  &quot;reason&quot;: &quot;已经在原地打转，再 Retry 只会烧步数&quot;
+}</pre>
+      </li></ol>
+        </details>
+      </section>
+</body>
+</html>
